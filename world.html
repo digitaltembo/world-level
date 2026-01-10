@@ -1,0 +1,217 @@
+<html>
+  <head>
+    <style>
+      :root {
+        --s-0: #ececec;
+        --s-1: #d6beff;
+        --s-2: #88aeff;
+        --s-3: #a8ffbe;
+        --s-4: #ffe57e;
+        --s-5: #ffb57e;
+        --s-6: #ff7e7e;
+      }
+
+      body {
+        font-family: sans-serif;
+        font-size: 1.5rem;
+      }
+
+      #scores {
+        width: 20rem;
+        position: fixed;
+        top: 40rem;
+        left: 10rem;
+        & > div > span:last-child {
+          float: right;
+        }
+      }
+      #label {
+        background-color: #fff;
+      }
+
+      h1 {
+        text-align: center;
+      }
+    </style>
+    <script>
+      const colors = [
+        "var(--s-0)",
+        "var(--s-1)",
+        "var(--s-2)",
+        "var(--s-3)",
+        "var(--s-4)",
+        "var(--s-5)",
+        "var(--s-6)",
+      ];
+      const points = [0, 0, 1, 2, 3, 4, 5];
+
+      function colorFromScores(s) {
+        const seed = Object.values(s).reduce(
+          (acc, cur, i) => (acc += cur * i),
+          0
+        );
+        let a = seed;
+        const rand = () => {
+          a |= 0;
+          a = (a + 0x9e3779b9) | 0;
+          let t = a ^ (a >>> 16);
+          t = Math.imul(t, 0x21f0aaad);
+          t = t ^ (t >>> 15);
+          t = Math.imul(t, 0x735a2d97);
+          return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
+        };
+
+        return `rgb(${[0, 0, 0]
+          .map(() => Math.floor(rand() * 50) + 176)
+          .join(",")})`;
+      }
+
+      async function loadWorld() {
+        const svg = document.createElement("div");
+        svg.innerHTML = await fetch("./world.svg").then((r) => r.text());
+        document.querySelector("body").appendChild(svg);
+
+        const scoreEl = document.getElementById("scores");
+
+        const countries = [
+          ...new Set(
+            Array.from(document.querySelector("svg").children).flatMap((e) =>
+              e.id && e.attributes.name?.value
+                ? [e.attributes.name.value]
+                : e.id
+                ? []
+                : [e.className.baseVal]
+            )
+          ),
+        ];
+
+        getCountryPaths = (n) => {
+          try {
+            return Array.from(
+              document.querySelectorAll(
+                `[name='${n}'],.${n.replaceAll(" ", ".")}`
+              )
+            );
+          } catch {
+            return [];
+          }
+        };
+        setColor = (n, s) =>
+          getCountryPaths(n).forEach((e) => {
+            e.style.fill = colors[s];
+          });
+
+        const hashOf = (ss) => {
+          let h = "#";
+          for (const score of [1, 2, 3, 4, 5, 6]) {
+            console.log(score);
+            h +=
+              Object.values(ss)
+                .flatMap((s, i) =>
+                  s == score ? [i.toString(16).padStart(2, "0")] : []
+                )
+                .join("") + ";";
+          }
+          return h;
+        };
+        const scores = (() => {
+          const s = Object.fromEntries(countries.map((c, i) => [c, 0]));
+          try {
+            // tis me: #;032343;;;181920262f45484c4d5e888e9ea2;3f6aa3;
+            window.location.hash
+              .slice(1)
+              .split(";")
+              .forEach((l, i) => {
+                for (let j = 0; j < l.length; j += 2) {
+                  const country =
+                    Object.keys(s)[Number.parseInt(l.slice(j, j + 2), 16)];
+                  setColor(country, i + 1);
+                  s[country] = i + 1;
+                }
+              });
+          } catch {
+            window.location.hash = "";
+          }
+          return s;
+        })();
+        document.querySelector("html").style.backgroundColor =
+          colorFromScores(scores);
+
+        let total = Object.values(scores).reduce(
+          (acc, cur) => acc + points[cur],
+          0
+        );
+        document.getElementById("title").innerText = `World Level ${total}`;
+
+        let highlight = null;
+        highlightCountry = (n) => {
+          if (highlight !== null) {
+            getCountryPaths(highlight).forEach(
+              (e) => (e.style.strokeWidth = 0.2)
+            );
+          }
+          highlight = n;
+          getCountryPaths(highlight).forEach((e) => (e.style.strokeWidth = 2));
+        };
+
+        setScore = (n, s) => {
+          console.log(`setting score of ${n} to ${s}`);
+          total += points[s] - points[scores[n]];
+
+          scores[n] = s;
+
+          document.querySelector("html").style.backgroundColor =
+            colorFromScores(scores);
+          setColor(n, s);
+          window.location.hash = hashOf(scores);
+          document.getElementById("title").innerText = `World Level ${total}`;
+        };
+
+        document.querySelector("svg").onclick = (e) => {
+          const country = e.target.id
+            ? e.target.attributes.name.value
+            : e.target.className.baseVal;
+          highlightCountry(country);
+          if (country) {
+            scoreEl.style.top = e.offsetY + 116;
+            scoreEl.style.left = e.offsetX;
+            document.getElementById("label").innerText = country;
+          } else {
+            scoreEl.style.top = "40rem";
+            scoreEl.style.left = "10rem";
+            document.getElementById("label").innerText = "";
+          }
+        };
+        document.onkeypress = (e) =>
+          highlight !== null &&
+          colors[Number.parseInt(e.key)] &&
+          setScore(highlight, Number.parseInt(e.key));
+        points.forEach((pts, score) => {
+          document.getElementById(`score-${score}`).style.background =
+            colors[score];
+          const ptSpan = document.createElement("span");
+          ptSpan.innerHTML = `${pts} pts`;
+          const specificScoreEl = document.getElementById(`score-${score}`);
+          specificScoreEl.appendChild(ptSpan);
+          specificScoreEl.style.cursor = "pointer";
+          specificScoreEl.onclick = () =>
+            highlight !== null && setScore(highlight, score);
+        });
+      }
+      loadWorld();
+    </script>
+  </head>
+  <body>
+    <h1 id="title">World Level 0</h1>
+    <div id="scores">
+      <div id="label"></div>
+      <div id="score-6"><span>Lived Here</span></div>
+      <div id="score-5"><span>Stayed Here</span></div>
+      <div id="score-4"><span>Visited Here</span></div>
+      <div id="score-3"><span>Stopped Here</span></div>
+      <div id="score-2"><span>Passed Here</span></div>
+      <div id="score-1"><span>Want to be Here</span></div>
+      <div id="score-0"><span>Never Been Here</span></div>
+    </div>
+  </body>
+</html>
