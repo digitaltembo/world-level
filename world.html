@@ -91,6 +91,8 @@
               document.querySelectorAll(
                 `[name='${n}'],.${n.replaceAll(" ", ".")}`
               )
+            ).filter(
+              (e) => e.attributes.name?.value === n || e.className.baseVal === n
             );
           } catch {
             return [];
@@ -114,7 +116,8 @@
           }
           return h;
         };
-        const scores = (() => {
+        let total = 0;
+        const getScores = () => {
           const s = Object.fromEntries(countries.map((c, i) => [c, 0]));
           try {
             // tis me: #;032343;;;181920262f45484c4d5e888e9ea2;3f6aa3;
@@ -132,16 +135,14 @@
           } catch {
             window.location.hash = "";
           }
+          total = Object.values(s).reduce((acc, cur) => acc + points[cur], 0);
+          document.getElementById("title").innerText = `World Level ${total}`;
           return s;
-        })();
+        };
+        let scores = getScores();
+
         document.querySelector("html").style.backgroundColor =
           colorFromScores(scores);
-
-        let total = Object.values(scores).reduce(
-          (acc, cur) => acc + points[cur],
-          0
-        );
-        document.getElementById("title").innerText = `World Level ${total}`;
 
         let highlight = null;
         highlightCountry = (n) => {
@@ -186,6 +187,9 @@
           highlight !== null &&
           colors[Number.parseInt(e.key)] &&
           setScore(highlight, Number.parseInt(e.key));
+        window.onhashchange = () => {
+          scores = getScores();
+        };
         points.forEach((pts, score) => {
           document.getElementById(`score-${score}`).style.background =
             colors[score];
