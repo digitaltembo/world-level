@@ -35,16 +35,21 @@
     </style>
     <script>
       const colors = [
-        "var(--level-0)",
-        "var(--level-1)",
-        "var(--level-2)",
-        "var(--level-3)",
-        "var(--level-4)",
-        "var(--level-5)",
-        "var(--level-6)",
+        "#ececec",
+        "#d6beff",
+        "#88aeff",
+        "#a8ffbe",
+        "#ffe57e",
+        "#ffb57e",
+        "#ff7e7e",
       ];
       const points = [0, 0, 1, 2, 3, 4, 5];
-
+      const WIDTH = 2000;
+      const HEIGHT = 867;
+      const IMG_WIDTH = 2000;
+      const IMG_HEIGHT = 867;
+      const DEFAULT_OUTLINE_STROKE = 1;
+      const HEAVY_OUTLINE_STROKE = 3;
       // Generate a random color for the background that should be uniquish per map
       function colorFromLevelMap(levels) {
         // need to start with a seed number, probably better would be to hash
@@ -67,18 +72,21 @@
           return ((t = t ^ (t >>> 15)) >>> 0) / 4294967296;
         };
 
-        return `rgb(${[0, 0, 0]
-          .map(() => Math.floor(rand() * 50) + 176)
-          .join(",")})`;
+        return `#${[0, 0, 0]
+          .map(() =>
+            (Math.floor(rand() * 50) + 176).toString(16).padStart(2, "0")
+          )
+          .join("")}`;
       }
 
       // load the world and put in the event listeners
       async function loadWorld() {
         const svg = document.createElement("div");
-        svg.innerHTML = await fetch("./world.svg").then((r) => r.text());
+        svg.innerHTML = await fetch("./world2.svg").then((r) => r.text());
         document.querySelector("body").appendChild(svg);
 
         const scoreEl = document.getElementById("scores");
+        const svgScoreEls = document.querySelectorAll(".legend");
 
         // extract a list of country names from the world svg
         const countries = [
@@ -95,7 +103,7 @@
 
         // returns an array of elements which constitute all the SVG paths
         // for the country with the given name
-        getCountryPaths = (n) => {
+        const getCountryPaths = (n) => {
           try {
             return Array.from(
               document.querySelectorAll(
@@ -112,9 +120,9 @@
         };
 
         // set the color of the given country appropriate to the country-level
-        setColor = (countryName, level) =>
+        const setColor = (countryName, level) =>
           getCountryPaths(countryName).forEach((e) => {
-            e.style.fill = colors[level];
+            e.setAttribute("fill", colors[level]);
           });
 
         // generate a window.location.hash string uniquely identifying the
@@ -164,9 +172,12 @@
             window.location.hash = "";
           }
           total = Object.values(l).reduce((acc, cur) => acc + points[cur], 0);
-          document.getElementById("title").innerText = `World Level ${total}`;
+          document.getElementById("title").innerHTML = `World Level ${total}`;
           document.querySelector("html").style.backgroundColor =
             colorFromLevelMap(l);
+          document
+            .getElementById("background")
+            .setAttribute("fill", colorFromLevelMap(l));
 
           return l;
         };
@@ -174,18 +185,20 @@
 
         let highlight = null;
         // highlights a country by making its border have a wider stroke width
-        highlightCountry = (n, e) => {
+        const highlightCountry = (n) => {
           if (highlight !== null) {
-            getCountryPaths(highlight).forEach(
-              (e) => (e.style.strokeWidth = 0.2)
+            getCountryPaths(highlight).forEach((e) =>
+              e.setAttribute("stroke-width", DEFAULT_OUTLINE_STROKE)
             );
           }
           highlight = n;
-          getCountryPaths(highlight).forEach((e) => (e.style.strokeWidth = 2));
+          getCountryPaths(highlight).forEach((e) =>
+            e.setAttribute("stroke-width", HEAVY_OUTLINE_STROKE)
+          );
         };
         // updating the level mostly consists of updating the hash,
         // triggering the onhashchange action to reparse the hash entirely
-        setLevel = (countryName, level) => {
+        const setLevel = (countryName, level) => {
           levelMap[countryName] = level;
           // still necessary to change this specific country, as
           // onhashchange will only update the colors of non-0 level countries
@@ -194,24 +207,33 @@
           window.location.hash = hashOf(levelMap);
         };
 
+        const selectCountry = (c, e) => {
+          highlightCountry(c);
+          if (c) {
+            console.log("selecting country", c);
+            scoreEl.style.top = e.offsetY + 116;
+            scoreEl.style.left = e.offsetX;
+            scoreEl.removeAttribute("hidden");
+            document.getElementById("label").innerText = c;
+            for (const svgScoreEl of svgScoreEls) {
+              svgScoreEl.setAttribute("visibility", "hidden");
+            }
+          } else {
+            scoreEl.setAttribute("hidden", "hidden");
+            for (const svgScoreEl of svgScoreEls) {
+              svgScoreEl.setAttribute("visibility", "visible");
+            }
+          }
+        };
         // when clicking in the world map, if clicking on a country,
         // highlight it and move the scores div into place underneath,
         // updating it with the name of the clicked country. Otherwise
         // remove the country name and move it back to its default spot
         document.querySelector("svg").onclick = (e) => {
-          const country = e.target.id
+          const country = e.target.attributes.name
             ? e.target.attributes.name.value
             : e.target.className.baseVal;
-          highlightCountry(country);
-          if (country) {
-            scoreEl.style.top = e.offsetY + 116;
-            scoreEl.style.left = e.offsetX;
-            document.getElementById("label").innerText = country;
-          } else {
-            scoreEl.style.top = "40rem";
-            scoreEl.style.left = "10rem";
-            document.getElementById("label").innerText = "";
-          }
+          selectCountry(country, e);
         };
 
         // you can type 0-6 to set the level while a country is highlighted
@@ -238,13 +260,62 @@
           specificScoreEl.onclick = () =>
             highlight !== null && setLevel(highlight, score);
         });
+
+        const saveImage = () => {
+          console.log("saving");
+          selectCountry(null);
+          const svg = document.querySelector("svg");
+          const outputSvg = `
+<svg 
+  version="1.1"
+  xmlns="http://www.w3.org/2000/svg" 
+  viewBox="0 0 ${WIDTH} ${HEIGHT}" 
+  width="${IMG_WIDTH}px" 
+  height="${IMG_HEIGHT}px" 
+  fill="#fff" 
+  stroke="#000" 
+  stroke-width="2px">
+  <rect width="100%" height="100%" fill="${colorFromLevelMap(levelMap)}" />
+  ${svg.innerHTML}
+</svg>`;
+
+          const blob = new Blob([svg.outerHTML], {
+            type: "image/svg+xml;charset=utf-8",
+          });
+          const urlSrc = URL.createObjectURL(blob);
+          // save the contents of the svg element as a png file by using a canvas
+          const canvas = document.createElement("canvas");
+          canvas.width = IMG_WIDTH;
+          canvas.height = IMG_HEIGHT;
+          const ctx = canvas.getContext("2d");
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, IMG_WIDTH, IMG_HEIGHT);
+            const link = document.createElement("a");
+            link.download = "world.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            console.log("saved?", link);
+          };
+          img.onerror = (e) => console.log("crap", e);
+          img.src = urlSrc;
+        };
+        document.getElementById("save").onclick = saveImage;
+        document.getElementById("clear").onclick = () => {
+          for (const c in levelMap) {
+            if (levelMap[c] > 0) {
+              setColor(c, 0);
+            }
+            levelMap[c] = 0;
+          }
+          window.location.hash = hashOf(levelMap);
+        };
       }
       loadWorld();
     </script>
   </head>
   <body>
-    <h1 id="title">World Level 0</h1>
-    <div id="scores">
+    <div id="scores" hidden>
       <div id="label"></div>
       <div id="score-6"><span>Lived Here</span></div>
       <div id="score-5"><span>Stayed Here</span></div>
@@ -254,5 +325,7 @@
       <div id="score-1"><span>Want to be Here</span></div>
       <div id="score-0"><span>Never Been Here</span></div>
     </div>
+    <button id="save">Save</button>
+    <button id="clear">Clear</button>
   </body>
 </html>
