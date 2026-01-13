@@ -5,6 +5,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>World Level</title>
+    <script src="/svg-pan-zoom.min.js"></script>
     <style>
       :root {
         --level-0: #ececec;
@@ -238,7 +239,9 @@
           const country = e.target.attributes.name
             ? e.target.attributes.name.value
             : e.target.className.baseVal;
-          selectCountry(country, e);
+          if (!country.startsWith("svg-pan-zoom")) {
+            selectCountry(country, e);
+          }
         };
 
         // you can type 0-6 to set the level while a country is highlighted
@@ -315,6 +318,14 @@
           }
           window.location.hash = hashOf(levelMap);
         };
+        svgPanZoom("svg", {
+          zoomEnabled: true,
+          controlIconsEnabled: true,
+          fit: true,
+          center: true,
+          zoomScaleSensitivity: 0.6,
+          // viewportSelector: document.getElementById('demo-tiger').querySelector('#g4') // this option will make library to misbehave. Viewport should have no transform attribute
+        });
       }
       loadWorld();
     </script>
