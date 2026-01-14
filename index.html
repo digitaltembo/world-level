@@ -5,7 +5,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>World Level</title>
-    <script src="/svg-pan-zoom.min.js"></script>
     <style>
       :root {
         --level-0: #ececec;
@@ -162,6 +161,7 @@
           const l = Object.fromEntries(countries.map((c, i) => [c, 0]));
           try {
             // tis me: #;032343;;;181920262f45484c4d5e888e9ea2;3f6aa3;
+            // w: #066983;;23;0204191f212f3b4a5c5f6e9a9d9e9fa1a2aa;182036484c88bac5c6;45a3;
             window.location.hash
               .slice(1)
               .split(";")
@@ -239,9 +239,7 @@
           const country = e.target.attributes.name
             ? e.target.attributes.name.value
             : e.target.className.baseVal;
-          if (!country.startsWith("svg-pan-zoom")) {
-            selectCountry(country, e);
-          }
+          selectCountry(country, e);
         };
 
         // you can type 0-6 to set the level while a country is highlighted
@@ -270,23 +268,8 @@
         });
 
         const saveImage = () => {
-          console.log("saving");
           selectCountry(null);
           const svg = document.querySelector("svg");
-          const outputSvg = `
-<svg 
-  version="1.1"
-  xmlns="http://www.w3.org/2000/svg" 
-  viewBox="0 0 ${WIDTH} ${HEIGHT}" 
-  width="${IMG_WIDTH}px" 
-  height="${IMG_HEIGHT}px" 
-  fill="#fff" 
-  stroke="#000" 
-  stroke-width="2px">
-  <rect width="100%" height="100%" fill="${colorFromLevelMap(levelMap)}" />
-  ${svg.innerHTML}
-</svg>`;
-
           const blob = new Blob([svg.outerHTML], {
             type: "image/svg+xml;charset=utf-8",
           });
@@ -308,6 +291,7 @@
           img.onerror = (e) => console.log("crap", e);
           img.src = urlSrc;
         };
+
         document.getElementById("save").onclick = saveImage;
         document.getElementById("clear").onclick = () => {
           for (const c in levelMap) {
@@ -318,14 +302,6 @@
           }
           window.location.hash = hashOf(levelMap);
         };
-        svgPanZoom("svg", {
-          zoomEnabled: true,
-          controlIconsEnabled: true,
-          fit: true,
-          center: true,
-          zoomScaleSensitivity: 0.6,
-          // viewportSelector: document.getElementById('demo-tiger').querySelector('#g4') // this option will make library to misbehave. Viewport should have no transform attribute
-        });
       }
       loadWorld();
     </script>

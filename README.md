@@ -4,5 +4,3 @@ Inspired by and color scheme from: https://github.com/tenpages/us-level, which i
 https://zhung.com.tw/japanex/
 
 World Map taken from https://simplemaps.com/resources/svg-world, while those inspirations have nicely stylized maps that make it easier to click things, so I might update that
-
-Also uses [svg-pan-zoom](https://github.com/bumbu/svg-pan-zoom) for panning and zooming the svg
