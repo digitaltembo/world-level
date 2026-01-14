@@ -37,6 +37,22 @@
       h1 {
         text-align: center;
       }
+
+      button {
+        font-family: "Hiragino Sans", sans-serif;
+        font-size: 1.5rem;
+        border: 3px solid;
+        border-radius: 5px;
+        float: right;
+      }
+
+      #save {
+        background: var(--level-3);
+      }
+
+      #clear {
+        background: var(--level-2);
+      }
     </style>
     <script>
       const colors = [
@@ -49,8 +65,8 @@
         "#ff7e7e",
       ];
       const points = [0, 0, 1, 2, 3, 4, 5];
-      const WIDTH = 2000;
-      const HEIGHT = 867;
+      const WIDTH = "100vw";
+      const HEIGHT = "43vw";
       const IMG_WIDTH = 2000;
       const IMG_HEIGHT = 867;
       const DEFAULT_OUTLINE_STROKE = 1;
@@ -86,9 +102,13 @@
 
       // load the world and put in the event listeners
       async function loadWorld() {
-        const svg = document.createElement("div");
-        svg.innerHTML = await fetch("./world2.svg").then((r) => r.text());
-        document.querySelector("body").appendChild(svg);
+        const svgContainer = document.createElement("div");
+        svgContainer.innerHTML = await fetch("./world2.svg").then((r) =>
+          r.text()
+        );
+        svgContainer.firstElementChild.setAttribute("width", WIDTH);
+        svgContainer.firstElementChild.setAttribute("height", HEIGHT);
+        document.querySelector("body").appendChild(svgContainer);
 
         const scoreEl = document.getElementById("scores");
         const svgScoreEls = document.querySelectorAll(".legend");
@@ -270,7 +290,16 @@
         const saveImage = () => {
           selectCountry(null);
           const svg = document.querySelector("svg");
-          const blob = new Blob([svg.outerHTML], {
+          let svgText = svg.outerHTML;
+          svgText = svgText.replace(
+            / width=\"[^\"]+\"/,
+            ` width="${IMG_WIDTH}px"`
+          );
+          svgText = svgText.replace(
+            / height=\"[^\"]+\"/,
+            ` height="${IMG_HEIGHT}px"`
+          );
+          const blob = new Blob([svgText], {
             type: "image/svg+xml;charset=utf-8",
           });
           const urlSrc = URL.createObjectURL(blob);
@@ -286,7 +315,6 @@
             link.download = "world.png";
             link.href = canvas.toDataURL("image/png");
             link.click();
-            console.log("saved?", link);
           };
           img.onerror = (e) => console.log("crap", e);
           img.src = urlSrc;
@@ -317,7 +345,7 @@
       <div id="score-1"><span>Want to be Here</span></div>
       <div id="score-0"><span>Never Been Here</span></div>
     </div>
-    <button id="save">Save</button>
     <button id="clear">Clear</button>
+    <button id="save">Save</button>
   </body>
 </html>
